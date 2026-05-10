@@ -1,12 +1,7 @@
-name: Build Menuconfig RAX3000Q
+name: Build Firmware RAX3000Q Final
 
 on:
-  workflow_dispatch:
-    inputs:
-      ssh:
-        description: 'Bật kết nối SSH qua tmate'
-        required: false
-        default: 'true'
+  workflow_dispatch: # Chạy thủ công từ tab Actions
 
 jobs:
   build:
@@ -27,20 +22,31 @@ jobs:
         qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget \
         xmlto xxd zlib1g-dev
 
-    - name: Cập nhật và cài đặt Feeds
+    - name: Cập nhật Feeds
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    - name: Kết nối SSH qua tmate
-      uses: P3TERX/ssh2-actions@main
-      if: github.event.inputs.ssh == 'true'
-
-    - name: Chế độ chờ cấu hình
-      if: github.event.inputs.ssh == 'true'
+    - name: Nạp file cấu hình (.config)
       run: |
-        echo "HỆ THỐNG ĐANG ĐỢI BẠN CẤU HÌNH..."
-        echo "Hãy mở link tmate bên dưới và gõ: make menuconfig"
-        while [ ! -f /tmp/continue ]; do
-          sleep 10
-        done
+        # Lưu ý: Bạn phải tạo file mang tên rax3000q.config ở thư mục gốc của Repo trước
+        [ -e rax3000q.config ] && mv rax3000q.config .config
+        make defconfig
+
+    - name: Tải gói chuẩn bị biên dịch
+      run: |
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: Biên dịch Firmware (Nấu)
+      run: |
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Gom nhóm và Tải lên sản phẩm (Artifacts)
+      uses: actions/upload-artifact@v3
+      with:
+        name: OpenWrt_Firmware_RAX3000Q
+        path: bin/targets/qualcomm/ipq50xx/*.bin
