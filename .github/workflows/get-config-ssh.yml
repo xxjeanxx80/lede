@@ -1,10 +1,10 @@
-name: Get OpenWrt Config via SSH
+name: Get LEDE Config Fixed for RAX3000Q
 
 on:
-  workflow_dispatch: # Cho phép nhấn nút Run thủ công
+  workflow_dispatch:
     inputs:
       ssh:
-        description: 'Bật kết nối SSH qua tmate'
+        description: 'Bật SSH qua tmate'
         required: false
         default: 'true'
 
@@ -16,7 +16,7 @@ jobs:
     - name: Kiểm tra mã nguồn
       uses: actions/checkout@v4
 
-    - name: Cài đặt môi trường build
+    - name: Cài đặt môi trường
       run: |
         sudo apt update
         sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
@@ -27,15 +27,26 @@ jobs:
         qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget \
         xmlto xxd zlib1g-dev
 
-    - name: Cập nhật và cài đặt Feeds
+    - name: Tải mã nguồn LEDE (Cập nhật sâu)
       run: |
+        # Clone với độ sâu đầy đủ để không sót các branch/patch
+        git clone https://github.com/coolsnowwolf/lede
+        cd lede
+        
+        # Cập nhật mã nguồn và các gói phụ trợ
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+        
+        # Kiểm tra sự hiện diện của dòng chip Qualcomm mới
+        echo "--- DANH SÁCH TARGET IPQ HIỆN CÓ ---"
+        ls -d target/linux/ipq* || echo "Không tìm thấy thư mục ipq nào"
+        echo "------------------------------------"
 
     - name: Mở kết nối SSH (tmate)
       uses: mxschmitt/action-tmate@v3
       if: github.event.inputs.ssh == 'true'
-      timeout-minutes: 60 # Sẽ tự đóng sau 60 phút nếu bạn không thao tác
+      with:
+        limit-access-to-actor: true
 
-    - name: Thông báo kết thúc
-      run: echo "Phiên làm việc đã kết thúc hoặc bị đóng bởi người dùng."
+    - name: Kết thúc
+      run: echo "Xong."
