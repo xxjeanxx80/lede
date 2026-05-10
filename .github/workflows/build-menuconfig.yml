@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Kiểm tra mã nguồn
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Cài đặt môi trường build
       run: |
@@ -29,8 +29,14 @@ jobs:
 
     - name: Nạp file cấu hình (.config)
       run: |
-        # Lưu ý: Bạn phải tạo file mang tên rax3000q.config ở thư mục gốc của Repo trước
-        [ -e rax3000q.config ] && mv rax3000q.config .config
+        # Đảm bảo bạn đã tạo file rax3000q.config ở thư mục gốc của Repo
+        if [ -f rax3000q.config ]; then
+          cp rax3000q.config .config
+          echo "Đã nạp file cấu hình thành công."
+        else
+          echo "LỖI: Không tìm thấy file rax3000q.config trong Repo!"
+          exit 1
+        fi
         make defconfig
 
     - name: Tải gói chuẩn bị biên dịch
@@ -42,11 +48,17 @@ jobs:
     - name: Biên dịch Firmware (Nấu)
       run: |
         echo -e "$(nproc) thread compile"
+        # Thử build nhanh bằng nhiều luồng, nếu lỗi thì build chậm để kiểm tra lỗi chi tiết
         make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Gom nhóm và Tải lên sản phẩm (Artifacts)
-      uses: actions/upload-artifact@v3
+    - name: Gom nhóm sản phẩm
+      run: |
+        mkdir -p ./output
+        cp bin/targets/qualcomm/ipq50xx/*.bin ./output/ 2>/dev/null || cp bin/targets/qualcomm/ipq50xx/*.ubi ./output/ 2>/dev/null
+        echo "Sản phẩm đã được gom vào thư mục output."
+
+    - name: Tải lên sản phẩm (Artifacts)
+      uses: actions/upload-artifact@v4
       with:
         name: OpenWrt_Firmware_RAX3000Q
-        path: bin/targets/qualcomm/ipq50xx/*.bin
+        path: ./output/*
