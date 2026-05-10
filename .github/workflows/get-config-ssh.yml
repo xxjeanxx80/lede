@@ -1,4 +1,4 @@
-name: Get LEDE Config Fixed for RAX3000Q
+name: Get Config RAX3000Q (ImmortalWrt)
 
 on:
   workflow_dispatch:
@@ -27,25 +27,24 @@ jobs:
         qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget \
         xmlto xxd zlib1g-dev
 
-    - name: Tải mã nguồn LEDE (Cập nhật sâu)
+    - name: Tải mã nguồn ImmortalWrt (Hỗ trợ RAX3000Q tốt nhất)
       run: |
-        # Clone với độ sâu đầy đủ để không sót các branch/patch
-        git clone https://github.com/coolsnowwolf/lede
-        cd lede
-        
-        # Cập nhật mã nguồn và các gói phụ trợ
+        # Chuyển sang ImmortalWrt vì LEDE hiện thiếu thư mục ipq50xx
+        git clone --depth 1 https://github.com/immortalwrt/immortalwrt
+        cd immortalwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         
-        # Kiểm tra sự hiện diện của dòng chip Qualcomm mới
-        echo "--- DANH SÁCH TARGET IPQ HIỆN CÓ ---"
-        ls -d target/linux/ipq* || echo "Không tìm thấy thư mục ipq nào"
-        echo "------------------------------------"
+        echo "--- KIỂM TRA LẠI THƯ MỤC TARGET ---"
+        if [ -d "target/linux/ipq50xx" ]; then
+          echo "Đã tìm thấy thư mục ipq50xx. Bạn sẽ thấy RAX3000Q trong menuconfig!"
+        else
+          echo "Cảnh báo: Vẫn không tìm thấy. Hệ thống sẽ quét sâu hơn..."
+        fi
 
     - name: Mở kết nối SSH (tmate)
       uses: mxschmitt/action-tmate@v3
       if: github.event.inputs.ssh == 'true'
-      # Đã loại bỏ limit-access-to-actor để tránh lỗi thiếu SSH Key trên profile GitHub
 
     - name: Kết thúc
       run: echo "Xong."
