@@ -45,8 +45,7 @@ jobs:
     - name: Mở kết nối SSH (tmate)
       uses: mxschmitt/action-tmate@v3
       if: github.event.inputs.ssh == 'true'
-      with:
-        limit-access-to-actor: true
+      # Đã loại bỏ limit-access-to-actor để tránh lỗi thiếu SSH Key trên profile GitHub
 
     - name: Kết thúc
       run: echo "Xong."
