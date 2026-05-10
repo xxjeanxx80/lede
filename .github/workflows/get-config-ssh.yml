@@ -1,0 +1,41 @@
+name: Get OpenWrt Config via SSH
+
+on:
+  workflow_dispatch: # Cho phép nhấn nút Run thủ công
+    inputs:
+      ssh:
+        description: 'Bật kết nối SSH qua tmate'
+        required: false
+        default: 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Kiểm tra mã nguồn
+      uses: actions/checkout@v4
+
+    - name: Cài đặt môi trường build
+      run: |
+        sudo apt update
+        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+        bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+        git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgpgme11-dev libltdl-dev \
+        libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
+        mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip libpython3-dev \
+        qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget \
+        xmlto xxd zlib1g-dev
+
+    - name: Cập nhật và cài đặt Feeds
+      run: |
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Mở kết nối SSH (tmate)
+      uses: mxschmitt/action-tmate@v3
+      if: github.event.inputs.ssh == 'true'
+      timeout-minutes: 60 # Sẽ tự đóng sau 60 phút nếu bạn không thao tác
+
+    - name: Thông báo kết thúc
+      run: echo "Phiên làm việc đã kết thúc hoặc bị đóng bởi người dùng."
